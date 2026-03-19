@@ -1,17 +1,18 @@
 # 🚀 ApplyX
 
-**Apply to jobs with personalized outreach in 1 click — powered by AI.**
+**Apply to jobs with personalized outreach in 1 click — powered by Llama 3 & Groq.**
 
 ApplyX is an open-source tool designed to make job hunting faster and more personal. No more generic "I'm interested" messages. Generate high-quality, tailored outreach based on the LinkedIn post and your resume, directly in your browser.
 
 ## 🔥 Key Features
 
-- **1-Click Generation**: Tailors messages instantly to the LinkedIn post context.
-- **Resume-Aware**: Uses your actual background to find the best angle for outreach.
-- **Privacy First**: All your data (Resume, OpenAI Key) stays in your browser's local storage.
-- **Open Source**: Free forever, built for the community.
+- **1-Click Generation**: Tailors messages instantly to the LinkedIn post context using **Groq (Llama 3.1)**.
+- **Resume-Aware & Attached**: Uses your actual background to find the best angle for outreach and **automatically attaches your PDF resume** to the email.
+- **One-Click Send**: Send outreach emails directly via the **Gmail API** without leaving the page.
+- **Dynamic Personalization**: Configure your Portfolio/Personal Website link and Full Name in the dashboard to automatically brand every email.
+- **Self-Hosted & Private**: Your data is stored in **your own Supabase instance**, ensuring total privacy and control.
 
-## ⚡ Quick 2-Minute Setup
+## ⚡ Quick Start (Self-Hosted)
 
 1. **Clone the Repo**:
    ```bash
@@ -19,103 +20,57 @@ ApplyX is an open-source tool designed to make job hunting faster and more perso
    cd ApplyX
    ```
 2. **Setup Extension**:
-   - Go to `apps/extension` and run `npm install`.
-   - Run `npm run dev`.
-   - Open Chrome and go to `chrome://extensions`.
-   - Enable **Developer Mode**.
-   - Click **Load unpacked** and select the `apps/extension/build/chrome-mv3-dev` folder.
-3. **Configure ApplyX**:
-   - Open LinkedIn.
-   - Click the floating Mail icon or the "Send Email" button on posts.
-   - Enter your **OpenAI API Key** and paste your **Resume/Bio** in the settings.
-   - Start applying! ✅
+   - `cd apps/extension && npm install && npm run dev`.
+   - Load the unpacked folder `apps/extension/build/chrome-mv3-dev` in `chrome://extensions`.
+3. **Setup Web & Backend**:
+   - `cd apps/web && npm install && npm run dev`.
+   - Setup your `.env.local` (see details below).
+4. **Connect**:
+   - Log in to the Web Dashboard at `localhost:3000`.
+   - Upload your Resume and Personal Website in the **Manage Profile** section.
+   - Copy your **Extension Key** from the Dashboard settings.
+   - Paste the key into the LinkedIn Sidebar settings. ✅ Ready!
 
 ## ⚙️ Project Structure
 
 - `apps/extension`: The Chrome extension (Plasmo + React).
-- `apps/web`: The Next.js dashboard/backend (Supabase + Auth).
-- `packages/ai-core`: Shared AI logic and prompts.
+- `apps/web`: The Next.js dashboard & backend (Supabase + NextAuth + Gmail API).
+- `packages/`: Shared logic and components.
 
-## 🛠️ Step-by-Step Setup
+## 🛠️ Infrastructure Setup
 
-### 1. Supabase Setup (Database & Storage)
-1.  Create a free project at [Supabase](https://supabase.com).
-2.  Go to the **SQL Editor** and run the following commands to create the necessary tables:
-    ```sql
-    -- Create profiles table
-    CREATE TABLE profiles (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      email TEXT UNIQUE NOT NULL,
-      name TEXT,
-      image TEXT,
-      access_token TEXT,
-      refresh_token TEXT,
-      api_key TEXT UNIQUE,
-      updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    );
+### 1. Supabase (Database)
+1. Create a project at [Supabase](https://supabase.com).
+2. Run the SQL schema from `README.md` (lines 45-79) in the **SQL Editor** to create the tables.
+3. Note your `Project URL` and `anon public` key.
 
-    -- Create resumes table
-    CREATE TABLE resumes (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id TEXT UNIQUE NOT NULL,
-      resume_text TEXT NOT NULL,
-      file_name TEXT,
-      file_content TEXT,
-      updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    );
+### 2. Google OAuth & Gmail API
+1. Enable the **Gmail API** in [Google Cloud Console](https://console.cloud.google.com/).
+2. Create **OAuth 2.0 Credentials** (Web Application).
+3. Set Authorized Redirect URI: `http://localhost:3000/api/auth/callback/google`.
+4. Required Scopes: `openid`, `email`, `profile`, `https://www.googleapis.com/auth/gmail.send`.
 
-    -- Create sent_emails table
-    CREATE TABLE sent_emails (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id TEXT NOT NULL,
-      recipient TEXT NOT NULL,
-      subject TEXT,
-      body TEXT,
-      thread_id TEXT,
-      message_id TEXT,
-      status TEXT,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    );
-    ```
-3.  Go to **Project Settings > API** and get your `Project URL` and `anon public` key.
+### 3. Groq (AI Engine)
+1. Get your free, ultra-fast API key at [console.groq.com](https://console.groq.com/).
+2. This ensures your outreach is generated in milliseconds for free.
 
-### 2. Google OAuth & Gmail API Setup
-1.  Go to the [Google Cloud Console](https://console.cloud.google.com/).
-2.  Create a **New Project**.
-3.  Search for **Gmail API** and click **Enable**.
-4.  Go to **OAuth consent screen**:
-    *   Choose **External**.
-    *   Add your email to **Test users**.
-    *   Add scopes: `openid`, `https://www.googleapis.com/auth/userinfo.email`, `https://www.googleapis.com/auth/userinfo.profile`, and `https://www.googleapis.com/auth/gmail.send`.
-5.  Go to **Credentials**:
-    *   Click **Create Credentials > OAuth client ID**.
-    *   Application type: **Web application**.
-    *   Authorized redirect URIs: `http://localhost:3000/api/auth/callback/google` (and your production URL).
-    *   Copy your **Client ID** and **Client Secret**.
-
-### 3. Environment Variables
-Create a `.env.local` in `apps/web` with:
+### 4. Environment Variables
+Create a `.env.local` in `apps/web`:
 ```bash
-GROQ_API_KEY=gsk_your_groq_api_key_here
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-NEXTAUTH_SECRET=any_random_string
+GROQ_API_KEY=gsk_...
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+NEXTAUTH_SECRET=...
+NEXTAUTH_URL=http://localhost:3000
 ```
-> Get your free Groq API key at [console.groq.com](https://console.groq.com/).
 
-### 4. Running the Project
-1.  Root: `npm install`
-2.  Extension: `cd apps/extension && npm run dev`
-3.  Web: `cd apps/web && npm run dev`
-
-## 🌍 Open Source Growth Hack
+## 🌍 Open Source & Community
 
 If this tool helps you land a job, consider giving us a star! ⭐
 
 ---
-
 *"I built this because job hunting is exhausting. Let's make it smarter together."*
 
 Built by [kiet7uke](https://github.com/kiet7uke)
