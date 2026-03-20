@@ -7,17 +7,18 @@
 [![GitHub stars](https://img.shields.io/github/stars/kiet7uke/ApplyX?style=for-the-badge&logo=github&color=6366f1)](https://github.com/kiet7uke/ApplyX/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-8b5cf6.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-a78bfa.svg?style=for-the-badge)](http://makeapullrequest.com)
-[![Made with Llama](https://img.shields.io/badge/Powered%20by-Llama%203.1-ec4899.svg?style=for-the-badge)](https://groq.com)
+[![Powered by Llama](https://img.shields.io/badge/Powered%20by-Llama%203.1-ec4899.svg?style=for-the-badge)](https://groq.com)
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=google-chrome)](https://github.com/kiet7uke/ApplyX)
-<br/>
 
 <br/>
-<a href="https://www.producthunt.com/products/applyx-2?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-applyx-2" target="_blank" rel="noopener noreferrer"><img alt="ApplyX - Apply to jobs with 1-click personalized outreach | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1102672&amp;theme=light&amp;t=1773946485595"></a>
+
+<a href="https://www.producthunt.com/products/applyx-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-applyx-2" target="_blank" rel="noopener noreferrer"><img alt="ApplyX - Apply to jobs with 1-click personalized outreach | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1102672&theme=light&t=1773946485595"></a>
+
 <br/>
 <br/>
 
 > **Apply to jobs with personalized outreach in 1 click — powered by Llama 3 & Groq.**
-> 
+>
 > *The open-source job application tool that actually respects your time.*
 
 <br/>
@@ -50,9 +51,9 @@ You:  *does this 30 more times today*
 ## ⚡ Enter ApplyX
 
 ![ApplyX Demo](https://i.imgur.com/placeholder-demo.gif)
-> *1-click from LinkedIn post → personalized email in your drafts. Real demo gif coming — PRs welcome!*
+> *1-click from LinkedIn post → personalized email sent from your real Gmail. Real demo gif coming — PRs welcome!*
 
-ApplyX is a **Chrome extension + web dashboard** that lives on LinkedIn. Spot a job post, click once, and a laser-targeted cold email — written from *your* resume, in *your* voice — is ready to send via Gmail. No copy-paste. No generic templates. No cringe.
+ApplyX is a **Chrome extension + web dashboard** that lives on LinkedIn. Spot a job post, click once, and a laser-targeted cold email — written from *your* resume, in *your* voice — is sent via your real Gmail. No copy-paste. No generic templates. No cringe.
 
 ---
 
@@ -62,16 +63,30 @@ ApplyX is a **Chrome extension + web dashboard** that lives on LinkedIn. Spot a 
 |---|---|
 | **⚡ 1-Click Generation** | Reads the LinkedIn post, grabs your resume, writes a tailored email via Groq (Llama 3.1) in ~1 second |
 | **📎 Auto-attach Resume** | Your PDF resume is automatically attached to every outreach email |
-| **📬 One-Click Send** | Fires the email via Gmail API — without leaving the LinkedIn page |
+| **📬 One-Click Send** | Fires the email via your real Gmail — without leaving LinkedIn |
 | **🎨 Dynamic Personalization** | Your name, portfolio, and vibe are baked into every message |
 | **🔒 Self-Hosted & Private** | Your data lives in **your** Supabase. Zero middlemen. |
 | **🆓 Actually Free** | Groq's free tier handles thousands of generations per day |
+| **🔑 No OAuth Audit** | Uses Gmail App Password — no Google verification process required |
+
+---
+
+## 🆕 What's new in v2
+
+| v1 | v2 |
+|---|---|
+| NextAuth + Google Cloud Console setup | Supabase Auth only |
+| Gmail API (requires Google app verification) | Nodemailer + Gmail App Password |
+| Extension Key to identify users | Supabase JWT token |
+| `localhost:3000` hardcoded in extension | Dynamic backend URL — fully self-hostable |
+| Only worked on LinkedIn feed page | Works on all LinkedIn pages |
+| 7 environment variables | 4 environment variables |
 
 ---
 
 ## 🚀 Quick Start
 
-> **Prerequisites**: Node.js 18+, a Google Cloud project, a Supabase account, a Groq API key.
+> **Prerequisites**: Node.js 18+, a Supabase account, a Groq API key, a Gmail account with 2FA enabled.
 
 ### 1. Clone & Install
 
@@ -80,7 +95,26 @@ git clone https://github.com/kiet7uke/ApplyX.git
 cd ApplyX
 ```
 
-### 2. Fire up the Extension
+### 2. Deploy the Web App
+
+Deploy to Vercel (recommended):
+
+```bash
+cd apps/web
+npm install
+vercel deploy
+```
+
+Or run locally:
+
+```bash
+cp .env.example .env.local  # fill in your keys
+npm run dev
+```
+
+Open `localhost:3000` 🎉
+
+### 3. Load the Chrome Extension
 
 ```bash
 cd apps/extension
@@ -88,79 +122,60 @@ npm install
 npm run dev
 ```
 
-Then in Chrome → `chrome://extensions` → **Load Unpacked** → select `apps/extension/build/chrome-mv3-dev`
+In Chrome → `chrome://extensions` → **Developer Mode ON** → **Load Unpacked** → select `apps/extension/build/chrome-mv3-dev`
 
-### 3. Fire up the Dashboard
+### 4. First-time Extension Setup (30 seconds)
 
-```bash
-cd apps/web
-cp .env.example .env.local  # fill in your keys (see below)
-npm install
-npm run dev
-```
-
-Open `localhost:3000` 🎉
-
-### 4. Connect Everything
-
-1. Log into the dashboard → **Manage Profile**
-2. Upload your **resume PDF** + add your **portfolio URL**
-3. Copy your **Extension Key** from Dashboard Settings
-4. Paste it into the LinkedIn sidebar settings panel
-5. Go to LinkedIn. Find a job. Click the button. ✅
+1. Go to LinkedIn → click the **ApplyX** floating button (bottom right)
+2. Enter your deployed Vercel URL
+3. Click **Open Dashboard & Login** → sign in with Google
+4. Upload your **resume PDF**
+5. Add your **Gmail App Password** (see below)
+6. Done ✅ — click **ApplyX Outreach** on any LinkedIn post
 
 ---
 
 ## 🛠️ Full Infrastructure Setup
 
 <details>
-<summary><b>🗄️ Supabase (Database)</b> — click to expand</summary>
+<summary><b>🗄️ Supabase (Database + Auth)</b> — click to expand</summary>
 
 1. Create a free project at [supabase.com](https://supabase.com)
-2. In the **SQL Editor**, run this schema:
-
-```sql
--- Users profile table
-create table profiles (
-  id uuid references auth.users on delete cascade primary key,
-  full_name text,
-  portfolio_url text,
-  resume_url text,
-  extension_key uuid default gen_random_uuid(),
-  created_at timestamp with time zone default timezone('utc'::text, now())
-);
-
--- Enable Row Level Security
-alter table profiles enable row level security;
-
-create policy "Users can view their own profile."
-  on profiles for select using ( auth.uid() = id );
-
-create policy "Users can insert their own profile."
-  on profiles for insert with check ( auth.uid() = id );
-
-create policy "Users can update own profile."
-  on profiles for update using ( auth.uid() = id );
-```
-
-3. Note your `Project URL` and `anon public` key from **Project Settings → API**
+2. In the **SQL Editor**, paste and run the contents of `supabase/schema.sql`
+3. Go to **Authentication → Providers → Google** → enable it
+4. Add your Google OAuth credentials (Client ID + Secret from Google Cloud Console)
+5. Set redirect URL to: `https://your-app.vercel.app/auth-callback`
+6. Go to **Authentication → URL Configuration** and set:
+   - Site URL: `https://your-app.vercel.app`
+   - Redirect URLs: `https://your-app.vercel.app/auth-callback`
+7. Note your `Project URL`, `anon public` key, and `service_role` key from **Project Settings → API**
 
 </details>
 
 <details>
-<summary><b>🔑 Google OAuth & Gmail API</b> — click to expand</summary>
+<summary><b>🔑 Google OAuth (for Supabase login)</b> — click to expand</summary>
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/) → **New Project**
-2. Enable the **Gmail API**: APIs & Services → Library → search "Gmail API" → Enable
-3. Create credentials: APIs & Services → **Credentials** → Create OAuth 2.0 Client ID
+2. APIs & Services → **Credentials** → Create OAuth 2.0 Client ID
    - Application type: **Web application**
-   - Authorized redirect URI: `http://localhost:3000/api/auth/callback/google`
-4. Required OAuth Scopes:
-   - `openid`
-   - `email`  
-   - `profile`
-   - `https://www.googleapis.com/auth/gmail.send`
-5. Save your `Client ID` and `Client Secret`
+   - Authorized redirect URI: `https://xxxx.supabase.co/auth/v1/callback`
+3. Required OAuth Scopes: `openid`, `email`, `profile`
+4. Save your `Client ID` and `Client Secret` → paste into Supabase Google provider settings
+
+> ✅ No Gmail API. No app verification. No waiting weeks for Google approval.
+
+</details>
+
+<details>
+<summary><b>✉️ Gmail App Password (for sending emails)</b> — click to expand</summary>
+
+1. Enable **2-Step Verification** on your Google account
+2. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+3. Create a new app password → name it `ApplyX`
+4. Copy the **16-character password**
+5. Paste it into the extension settings or the dashboard Settings page
+
+Your App Password is stored **AES-256 encrypted** in your own Supabase instance.
 
 </details>
 
@@ -183,17 +198,14 @@ Create `apps/web/.env.local`:
 # 🤖 AI
 GROQ_API_KEY=gsk_...
 
-# 🗄️ Database  
-SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_ANON_KEY=eyJ...
+# 🗄️ Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
-# 🔑 Google OAuth + Gmail
-GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-...
-
-# 🔒 NextAuth
-NEXTAUTH_SECRET=your-super-secret-random-string  # run: openssl rand -base64 32
-NEXTAUTH_URL=http://localhost:3000
+# 🔒 Encryption (exactly 32 characters)
+# Generate: openssl rand -base64 24 | tr -d '=+/' | cut -c1-32
+ENCRYPTION_KEY=your-32-character-secret-key-here
 ```
 
 ---
@@ -203,17 +215,35 @@ NEXTAUTH_URL=http://localhost:3000
 ```
 ApplyX/
 ├── apps/
-│   ├── extension/          # 🧩 Chrome Extension (Plasmo + React)
-│   │   └── src/
-│   │       ├── sidebar/    # LinkedIn sidebar UI
-│   │       └── background/ # Service worker
+│   ├── extension/                    # 🧩 Chrome Extension (Plasmo + React)
+│   │   ├── contents/
+│   │   │   ├── LinkedInSidebar.tsx   # Sidebar UI + 4-step setup wizard
+│   │   │   └── LinkedInSendEmail.tsx # Inline outreach button on posts
+│   │   └── background/
+│   │       └── index.ts              # Service worker
 │   │
-│   └── web/                # 🌐 Dashboard & Backend (Next.js)
-│       ├── app/            # Next.js App Router
-│       ├── components/     # React components
-│       └── lib/            # Supabase, NextAuth, Gmail helpers
+│   └── web/                          # 🌐 Dashboard & Backend (Next.js)
+│       ├── app/
+│       │   ├── api/
+│       │   │   ├── generate-email/   # Groq AI generation
+│       │   │   ├── send-email/       # Nodemailer sending
+│       │   │   ├── resume/           # Upload + status
+│       │   │   └── user/             # Profile + Gmail setup
+│       │   ├── (dashboard)/          # Web UI pages
+│       │   └── auth-callback/        # OAuth redirect handler
+│       ├── hooks/
+│       │   └── useAuth.ts            # Shared auth hook
+│       └── lib/
+│           ├── supabase.ts           # Browser Supabase client
+│           ├── supabase-admin.ts     # Server admin client (bypasses RLS)
+│           ├── mailer.ts             # Nodemailer Gmail SMTP
+│           ├── crypto.ts             # AES-256 encryption
+│           └── openai.ts             # Groq / Llama email generation
 │
-└── packages/               # 📦 Shared logic & types
+├── supabase/
+│   └── schema.sql                    # Full DB schema + RLS policies
+│
+└── .env.example                      # 4 variables — that's it
 ```
 
 ---
@@ -244,8 +274,8 @@ ApplyX/
                                              │
                                     ┌────────▼────────┐
                                     │  Personalized   │
-                                    │  Email → Gmail  │
-                                    │     Sent ✅     │
+                                    │ Email → Gmail   │
+                                    │  SMTP  Sent ✅  │
                                     └─────────────────┘
 ```
 
@@ -275,17 +305,23 @@ git push origin feature/your-amazing-idea
 
 ## 💬 Frequently Asked Questions
 
-**Q: Is this actually free?**  
+**Q: Is this actually free?**
 A: Yes. Groq's free tier handles ~14,400 requests/day. You won't hit that limit job hunting.
 
-**Q: Is my resume data safe?**  
+**Q: Is my resume data safe?**
 A: Your resume lives in your own Supabase instance. ApplyX never touches it.
 
-**Q: Will recruiters know I used AI?**  
+**Q: Do I need to pay for Google Cloud or get OAuth verified?**
+A: No. v2 uses Supabase Auth for login and Gmail App Password for sending — no Google Cloud billing, no OAuth consent screen verification required.
+
+**Q: Will recruiters know I used AI?**
 A: The output is grounded in *your* real resume and *their* actual job post — it reads as genuinely tailored because it is.
 
-**Q: Does it work with LinkedIn Premium?**  
+**Q: Does it work with LinkedIn Premium?**
 A: Works with any LinkedIn account. Premium not required.
+
+**Q: Which LinkedIn pages does it work on?**
+A: All of them — feed, job listings, profiles, company pages, search results.
 
 ---
 
@@ -301,7 +337,7 @@ A: Works with any LinkedIn account. Premium not required.
 
 <br/>
 
-Built with 💜 by [kiet7uke](https://github.com/kiet7uke) because job hunting is exhausting.
+Built with 💜 by [kiet7uke](https://github.com/kiet7uke) and contributors.
 
 *Let's make it smarter, together.*
 
