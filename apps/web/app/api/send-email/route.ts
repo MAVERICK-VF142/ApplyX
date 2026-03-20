@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getUserFromRequest, supabaseAdmin } from '@/lib/supabase';
+import { getUserFromRequest } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { sendEmail } from '@/lib/mailer';
 import { decrypt } from '@/lib/crypto';
 
