@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { Upload, FileText, Loader2, CheckCircle2, XCircle, User, Link2, RefreshC
 
 export default function ResumePage() {
   const { token, loading, authFetch } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
   const [portfolioUrl, setPortfolioUrl] = useState('');
@@ -93,20 +94,32 @@ export default function ResumePage() {
             <div className="space-y-2">
               <Label>Full Name</Label>
               <div className="relative">
-                <Input placeholder="e.g. Sahil Sharma" className="pl-10" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                <Input
+                  placeholder="e.g. Sahil Sharma"
+                  className="pl-10"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
                 <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Portfolio URL</Label>
               <div className="relative">
-                <Input placeholder="https://your-portfolio.com" className="pl-10" value={portfolioUrl} onChange={(e) => setPortfolioUrl(e.target.value)} />
+                <Input
+                  placeholder="https://your-portfolio.com"
+                  className="pl-10"
+                  value={portfolioUrl}
+                  onChange={(e) => setPortfolioUrl(e.target.value)}
+                />
                 <Link2 className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
               </div>
             </div>
           </div>
           <Button className="w-full" disabled={savingProfile} onClick={updateProfile}>
-            {savingProfile ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Update Profile'}
+            {savingProfile
+              ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+              : 'Update Profile'}
           </Button>
         </CardContent>
       </Card>
@@ -123,38 +136,72 @@ export default function ResumePage() {
           </div>
         </CardHeader>
         <CardContent className="p-8 space-y-6">
+
+          {/* Hidden file input — triggered via ref */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const selected = e.target.files?.[0];
+              if (selected) setFile(selected);
+              // Reset so same file can be re-selected
+              e.target.value = '';
+            }}
+          />
+
           {resumeData.exists && !file ? (
             <div className="bg-green-50 border border-green-100 rounded-2xl p-6 flex items-center gap-4">
-              <div className="p-4 bg-green-100 text-green-600 rounded-2xl"><CheckCircle2 size={28} /></div>
+              <div className="p-4 bg-green-100 text-green-600 rounded-2xl">
+                <CheckCircle2 size={28} />
+              </div>
               <div className="flex-1">
                 <h3 className="font-black text-green-900">Resume Active</h3>
-                <p className="text-green-700 text-sm">Using: <span className="underline">{resumeData.fileName}</span></p>
+                <p className="text-green-700 text-sm">
+                  Using: <span className="underline">{resumeData.fileName}</span>
+                </p>
               </div>
-              <Label htmlFor="resume-upload" className="cursor-pointer bg-white px-4 py-2 rounded-xl shadow-sm font-bold border border-slate-200 flex items-center gap-2 text-sm">
-                <RefreshCcw size={16} /> Replace
-              </Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <RefreshCcw size={16} className="mr-2" /> Replace
+              </Button>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center p-12 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl hover:border-blue-400 transition-all">
+            <div
+              className="flex flex-col items-center justify-center p-12 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl hover:border-blue-400 transition-all cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <Upload className="h-8 w-8 text-blue-500 mb-3" />
-              <Label htmlFor="resume-upload" className="cursor-pointer text-xl font-black hover:underline mb-1">
+              <p className="text-xl font-black hover:underline mb-1">
                 {file ? file.name : 'Click to select PDF'}
-              </Label>
+              </p>
               <p className="text-slate-400 text-sm">PDF only — parsed and stored securely</p>
+
               {file && (
-                <div className="mt-6 flex flex-col w-full gap-3">
+                <div
+                  className="mt-6 flex flex-col w-full gap-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Button className="w-full" disabled={uploading} onClick={uploadResume}>
-                    {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</> : 'Confirm Upload'}
+                    {uploading
+                      ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
+                      : 'Confirm Upload'}
                   </Button>
-                  <Button variant="ghost" onClick={() => setFile(null)} className="text-slate-400 hover:text-red-500">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setFile(null)}
+                    className="text-slate-400 hover:text-red-500"
+                  >
                     <XCircle size={16} className="mr-2" /> Cancel
                   </Button>
                 </div>
               )}
             </div>
           )}
-          <Input id="resume-upload" type="file" accept="application/pdf" className="hidden"
-            onChange={(e) => e.target.files?.[0] && setFile(e.target.files[0])} />
         </CardContent>
       </Card>
     </div>
