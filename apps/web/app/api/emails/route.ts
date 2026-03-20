@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getUserFromRequest, supabase } from '@/lib/supabase';
+import { getUserFromRequest, supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(req: Request) {
   try {
     const auth = await getUserFromRequest(req);
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { data: emails, error } = await supabase
+    const { data: emails, error } = await supabaseAdmin
       .from('sent_emails')
       .select('*')
       .eq('user_id', auth.user.id)

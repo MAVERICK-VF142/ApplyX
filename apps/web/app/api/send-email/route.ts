@@ -1,31 +1,27 @@
 import { NextResponse } from 'next/server';
-import { getUserFromRequest, supabase } from '@/lib/supabase';
+import { getUserFromRequest, supabaseAdmin } from '@/lib/supabase';
 import { sendEmail } from '@/lib/mailer';
 import { decrypt } from '@/lib/crypto';
 
 export async function POST(req: Request) {
   try {
     const auth = await getUserFromRequest(req);
-    if (!auth) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { to, subject, body } = await req.json();
     if (!to || !subject || !body) {
       return NextResponse.json({ error: 'Missing required fields: to, subject, body' }, { status: 400 });
     }
 
-    // Fetch Gmail credentials + resume in parallel
     const [profileFetch, resumeFetch] = await Promise.all([
-      supabase.from('profiles').select('gmail_email, gmail_app_password').eq('id', auth.user.id).single(),
-      supabase.from('resumes').select('file_name, file_content').eq('user_id', auth.user.id).single(),
+      supabaseAdmin.from('profiles').select('gmail_email, gmail_app_password').eq('id', auth.user.id).maybeSingle(),
+      supabaseAdmin.from('resumes').select('file_name, file_content').eq('user_id', auth.user.id).maybeSingle(),
     ]);
 
     if (!profileFetch.data?.gmail_email || !profileFetch.data?.gmail_app_password) {
-      return NextResponse.json(
-        { error: 'Gmail not configured. Please add your Gmail and App Password in the extension settings.' },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        error: 'Gmail not configured. Please add your Gmail App Password in Settings.',
+      }, { status: 400 });
     }
 
     const gmailAppPassword = decrypt(profileFetch.data.gmail_app_password);
@@ -40,8 +36,7 @@ export async function POST(req: Request) {
       resumeFileName: resumeFetch.data?.file_name || undefined,
     });
 
-    // Log to sent_emails table
-    await supabase.from('sent_emails').insert({
+    await supabaseAdmin.from('sent_emails').insert({
       user_id: auth.user.id,
       recipient: to,
       subject,

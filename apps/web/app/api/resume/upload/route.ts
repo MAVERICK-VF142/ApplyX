@@ -1,15 +1,13 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { getUserFromRequest, supabase } from '@/lib/supabase';
+import { getUserFromRequest, supabaseAdmin } from '@/lib/supabase';
 import { parsePdf } from '@/lib/resume-parser';
 
 export async function POST(req: Request) {
   try {
     const auth = await getUserFromRequest(req);
-    if (!auth) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
@@ -29,7 +27,7 @@ export async function POST(req: Request) {
       const resume_text = await parsePdf(buffer);
       const base64Content = buffer.toString('base64');
 
-      const { error: resumeError } = await supabase.from('resumes').upsert(
+      const { error } = await supabaseAdmin.from('resumes').upsert(
         {
           user_id: auth.user.id,
           resume_text,
@@ -39,26 +37,25 @@ export async function POST(req: Request) {
         },
         { onConflict: 'user_id' }
       );
-      if (resumeError) {
-        console.error('resume upsert error:', resumeError);
-        throw resumeError;
+      if (error) {
+        console.error('resume upsert error:', error);
+        throw error;
       }
     }
 
-    // Update profile fields
     const profileUpdate: any = { updated_at: new Date().toISOString() };
-    if (portfolioUrl !== undefined && portfolioUrl !== '') profileUpdate.portfolio_url = portfolioUrl;
-    if (fullName !== undefined && fullName !== '') profileUpdate.name = fullName;
+    if (portfolioUrl) profileUpdate.portfolio_url = portfolioUrl;
+    if (fullName) profileUpdate.name = fullName;
 
     if (Object.keys(profileUpdate).length > 1) {
-      const { error: profileError } = await supabase
+      const { error } = await supabaseAdmin
         .from('profiles')
         .update(profileUpdate)
         .eq('id', auth.user.id);
 
-      if (profileError) {
-        console.error('profile update error:', profileError);
-        throw profileError;
+      if (error) {
+        console.error('profile update error:', error);
+        throw error;
       }
     }
 
