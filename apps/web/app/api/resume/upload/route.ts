@@ -7,7 +7,9 @@ import { parsePdf } from '@/lib/resume-parser';
 export async function POST(req: Request) {
   try {
     const auth = await getUserFromRequest(req);
-    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!auth) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
@@ -27,7 +29,7 @@ export async function POST(req: Request) {
       const resume_text = await parsePdf(buffer);
       const base64Content = buffer.toString('base64');
 
-      const { error } = await supabase.from('resumes').upsert(
+      const { error: resumeError } = await supabase.from('resumes').upsert(
         {
           user_id: auth.user.id,
           resume_text,
@@ -37,20 +39,32 @@ export async function POST(req: Request) {
         },
         { onConflict: 'user_id' }
       );
-      if (error) throw error;
+      if (resumeError) {
+        console.error('resume upsert error:', resumeError);
+        throw resumeError;
+      }
     }
 
-    const profileUpdate: any = {};
-    if (portfolioUrl) profileUpdate.portfolio_url = portfolioUrl;
-    if (fullName) profileUpdate.name = fullName;
+    // Update profile fields
+    const profileUpdate: any = { updated_at: new Date().toISOString() };
+    if (portfolioUrl !== undefined && portfolioUrl !== '') profileUpdate.portfolio_url = portfolioUrl;
+    if (fullName !== undefined && fullName !== '') profileUpdate.name = fullName;
 
-    if (Object.keys(profileUpdate).length > 0) {
-      await supabase.from('profiles').update(profileUpdate).eq('id', auth.user.id);
+    if (Object.keys(profileUpdate).length > 1) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update(profileUpdate)
+        .eq('id', auth.user.id);
+
+      if (profileError) {
+        console.error('profile update error:', profileError);
+        throw profileError;
+      }
     }
 
     return NextResponse.json({
       success: true,
-      message: file ? 'Profile & Resume updated' : 'Profile updated',
+      message: file ? 'Resume & profile updated' : 'Profile updated',
       fileName: file ? file.name : null,
     });
   } catch (error: any) {
