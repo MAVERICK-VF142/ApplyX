@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/lib/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, CheckCircle2, XCircle, Send, Mail, ArrowUpRight, BarChart2 } from 'lucide-react';
 import Link from 'next/link';
@@ -17,11 +17,10 @@ interface SentEmail {
 
 export default function DashboardPage() {
   const { user, token, loading, authFetch } = useAuth();
+
   const [resumeStored, setResumeStored] = useState<boolean | null>(null);
   const [emails, setEmails] = useState<SentEmail[]>([]);
   const [fetching, setFetching] = useState(true);
-
-  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || 'there';
 
   useEffect(() => {
     if (loading || !token) return;
@@ -33,15 +32,17 @@ export default function DashboardPage() {
       setResumeStored(resumeData.exists ?? false);
       setEmails(emailsData.emails || []);
     }).catch(console.error)
-      .finally(() => setFetching(false));
+    .finally(() => setFetching(false));
   }, [token, loading]);
+
+  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || 'there';
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-4xl font-black tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Hi {firstName}, tracking your application journey.</p>
+          <p className="text-slate-500 font-medium mt-1">Hi {firstName}, tracking your application journey.</p>
         </div>
         <Button className="rounded-full font-bold bg-blue-600 hover:bg-blue-700">
           <BarChart2 className="w-4 h-4 mr-2" /> Analytics (soon)
@@ -49,6 +50,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
+        {/* Resume status */}
         <Card className="border-none shadow-xl bg-white dark:bg-slate-900">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -62,7 +64,8 @@ export default function DashboardPage() {
             ) : resumeStored ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-3 text-green-700 bg-green-50 px-4 py-3 rounded-xl">
-                  <CheckCircle2 className="h-5 w-5" /><span className="font-bold">Active & Ready</span>
+                  <CheckCircle2 className="h-5 w-5" />
+                  <span className="font-bold">Active & Ready</span>
                 </div>
                 <Button variant="ghost" className="w-full text-blue-600 font-bold" asChild>
                   <Link href="/resume">Update <ArrowUpRight className="ml-2 w-4 h-4" /></Link>
@@ -71,14 +74,18 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center gap-3 text-amber-700 bg-amber-50 px-4 py-3 rounded-xl">
-                  <XCircle className="h-5 w-5" /><span className="font-bold">Setup Required</span>
+                  <XCircle className="h-5 w-5" />
+                  <span className="font-bold">Setup Required</span>
                 </div>
-                <Button className="w-full" asChild><Link href="/resume">Upload PDF</Link></Button>
+                <Button className="w-full" asChild>
+                  <Link href="/resume">Upload PDF</Link>
+                </Button>
               </div>
             )}
           </CardContent>
         </Card>
 
+        {/* Emails sent */}
         <Card className="border-none shadow-xl bg-white dark:bg-slate-900">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -89,14 +96,15 @@ export default function DashboardPage() {
           <CardContent>
             <div className="flex items-baseline gap-2">
               <h2 className="text-6xl font-black leading-none">{emails.length}</h2>
-              <span className="text-muted-foreground font-bold text-lg">Sent</span>
+              <span className="text-slate-400 font-bold text-lg">Sent</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-3">
+            <p className="text-sm text-slate-500 mt-3">
               Across {new Set(emails.map((e) => e.recipient)).size} unique leads.
             </p>
           </CardContent>
         </Card>
 
+        {/* Coming soon */}
         <Card className="border-none shadow-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
           <CardHeader>
             <CardTitle className="opacity-80 uppercase tracking-widest text-sm font-black">Engagement</CardTitle>
@@ -109,6 +117,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Emails table */}
       <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white dark:bg-slate-950">
         <CardHeader className="border-b px-8 py-6">
           <CardTitle className="text-2xl font-black">Recent Outreach</CardTitle>
@@ -125,7 +134,9 @@ export default function DashboardPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {fetching ? (
                 [1, 2, 3].map((i) => (
-                  <tr key={i}><td colSpan={3} className="px-8 py-8 animate-pulse bg-slate-50/30" /></tr>
+                  <tr key={i}>
+                    <td colSpan={3} className="px-8 py-8 animate-pulse bg-slate-50/30 h-16" />
+                  </tr>
                 ))
               ) : emails.length === 0 ? (
                 <tr>
