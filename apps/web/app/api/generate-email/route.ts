@@ -8,6 +8,7 @@ export async function POST(req: Request) {
   try {
     const apiKey = req.headers.get('x-api-key');
     let userEmail: string | undefined;
+    let userNameFromSession: string | undefined;
 
     if (apiKey) {
       const { data: profile } = await supabase
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
     if (!userEmail) {
       const session = await auth();
       userEmail = session?.user?.email || undefined;
+      userNameFromSession = session?.user?.name || undefined;
     }
 
     if (!userEmail) {
@@ -48,7 +50,7 @@ export async function POST(req: Request) {
       resumeFetch.data.resume_text,
       postText,
       authorName,
-      profileFetch.data?.name || "User",
+      profileFetch.data?.name || userNameFromSession || "User",
       profileFetch.data?.portfolio_url || ""
     );
 

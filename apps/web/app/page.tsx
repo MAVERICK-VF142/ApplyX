@@ -23,13 +23,13 @@ export default function LandingPage() {
         <p className="text-xl text-muted-foreground">
           AI-Powered Personalization for Job Outreach. Send emails directly from LinkedIn posts.
         </p>
-        
+
         <div className="flex gap-4 justify-center">
           <Button size="lg" onClick={() => signIn("google", { callbackUrl: "/dashboard" })}>
             <Mail className="mr-2 h-5 w-5" /> Sign in with Google
           </Button>
           <Button variant="outline" size="lg" asChild>
-            <Link href="https://github.com/your-username/your-repo">
+            <Link href="https://github.com/kiet7uke/applyx">
               Learn More <MoveRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>

@@ -44,7 +44,7 @@ PERSON YOU'RE WRITING TO:
 ${authorName}
 
 MY PORTFOLIO:
-${portfolioUrl}
+${portfolioUrl || "None"}
 
 MY NAME:
 ${userName}
@@ -69,8 +69,7 @@ HOW TO WRITE
    - Use a new paragraph for your experience and value.
    - Focus on building products (0 → 1), shipping, and SaaS/AI.
 
-4. Mention your portfolio naturally:
-   "You can check my work here: ${portfolioUrl}"
+4. Mention your portfolio naturally if a link is provided.
 
 5. Keep it tight (80–120 words max)
 
@@ -85,43 +84,23 @@ IMPORTANT PERSONALIZATION RULES
 - DO NOT highlight niche features
 - DO NOT sound like listing resume experience
 - DO NOT generalize — stay specific to the post
-- USE AT LEAST 2-3 PARAGRAPHS for readability.
 
 ---
 
 STRICT RULES
 
-- NO phrases like "I am excited to apply", "I believe I am a great fit", "esteemed company"
-- NO generic lines
-- NO bullet points
-- NO emojis
-- NO over-explaining
-
----
-
-SUBJECT LINE RULES
-
-- YOU MUST follow this EXACT format:
-  "Application for [Role], [Stack] | ${userName}"
-  
-- Example: "Application for Mobile Engineer, React Native | ${userName}"
-- If it's a web role: "Application for Frontend Engineer, Next.js | ${userName}"
+- NO generic candidate phrases (e.g. "excited to apply", "best fit")
+- NO emojis, NO bullet points
+- 2-3 PARAGRAPHS max with \n\n spacing
+- **PORTFOLIO**: If My Portfolio is "None", DO NOT mention or invent a link.
+- **SUBJECT**: Must be "Application for [Role], [Stack] | ${userName}"
 - Use the primary role and tech stack from the post and resume.
 - DO NOT use any other format. Always end with " | ${userName}".
 
 ---
 
-FINAL INSTRUCTION
-
-- Write like a founder-engineer who builds and ships products, not someone applying for a job.
-- **IMPORTANT**: Ensure the email body has proper spacing (\n\n) and is not one big block of text.
-
----
-
-OUTPUT FORMAT (IMPORTANT)
-
-Return ONLY valid JSON:
-
+OUTPUT FORMAT:
+Return ONLY valid JSON with no extra text:
 {
   "subject": "string",
   "body": "string"

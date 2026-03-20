@@ -2,7 +2,7 @@ import React from "react";
 import type { PlasmoCSConfig, PlasmoGetInlineAnchorList } from "plasmo";
 import { Mail } from "lucide-react";
 import { Storage } from "@plasmohq/storage";
-import { outreachButtonStyles as styles } from "./styles";
+import { outreachButtonStyles as styles } from "../components/styles";
 
 
 export const config: PlasmoCSConfig = {

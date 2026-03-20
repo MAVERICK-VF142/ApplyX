@@ -2,16 +2,30 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const session = await auth();
-    const email = session?.user?.email;
+    const apiKey = req.headers.get('x-api-key');
+    let email: string | undefined;
+
+    if (apiKey) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('api_key', apiKey)
+        .single();
+      if (profile) email = profile.email;
+    }
+
+    if (!email) {
+      const session = await auth();
+      email = session?.user?.email || undefined;
+    }
 
     if (!email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: profile, error } = await supabase
+    const { data: profileDetail, error } = await supabase
       .from('profiles')
       .select('name, portfolio_url')
       .eq('email', email)
@@ -20,8 +34,8 @@ export async function GET() {
     if (error) throw error;
 
     return NextResponse.json({
-      name: profile?.name,
-      portfolioUrl: profile?.portfolio_url
+      name: profileDetail?.name,
+      portfolioUrl: profileDetail?.portfolio_url
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

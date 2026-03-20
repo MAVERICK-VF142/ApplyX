@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Mail, Loader2, Send, Copy, Check, X } from "lucide-react";
 import { Storage } from "@plasmohq/storage";
-import { allSidebarStyles as styles } from "./styles";
-import { Card, Label, Input, TextArea, PrimaryButton } from "./UIComponents";
+import { allSidebarStyles as styles } from "../components/styles";
+import { Card, Label, Input, TextArea, PrimaryButton } from "../components/UIComponents";
 
 export const config: any = {
   matches: ["https://www.linkedin.com/*"]
@@ -27,11 +27,18 @@ const LinkedInSidebar = () => {
   const [authorInput, setAuthorInput] = useState("");
   const [postInput, setPostInput] = useState("");
   const [emailInput, setEmailInput] = useState("");
+  const [userName, setUserName] = useState("User");
+  const [portfolioUrl, setPortfolioUrl] = useState("");
 
   useEffect(() => {
     storage.get("extensionKey").then(val => {
-      setExtensionKey(val as string || "");
-      if (!val) setIsConfiguring(true);
+      const key = val as string || "";
+      setExtensionKey(key);
+      if (!key) {
+        setIsConfiguring(true);
+      } else {
+        fetchUserProfile(key);
+      }
     });
 
     storage.watch({
@@ -51,12 +58,25 @@ const LinkedInSidebar = () => {
 
   }, []);
 
+  const fetchUserProfile = async (key: string) => {
+    try {
+      const { data } = await axios.get("http://localhost:3000/api/user/profile", {
+        headers: { 'x-api-key': key }
+      });
+      if (data.name) setUserName(data.name);
+      if (data.portfolioUrl) setPortfolioUrl(data.portfolioUrl);
+    } catch (err) {
+      console.error("Failed to fetch profile", err);
+    }
+  };
+
   const handleSaveConfig = async () => {
     if (!extensionKey) {
       alert("Extension Key is required.");
       return;
     }
     await storage.set("extensionKey", extensionKey);
+    fetchUserProfile(extensionKey);
     setIsConfiguring(false);
   };
 
@@ -214,6 +234,11 @@ const LinkedInSidebar = () => {
             </div>
 
             <div className="sidebar-footer">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
+                <div style={{ background: '#f8fafc', color: '#64748b', fontSize: '11px', fontWeight: 800, padding: '4px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  👤 {userName} {portfolioUrl ? "• 🔗 Linked" : ""}
+                </div>
+              </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <span className="footer-text">ApplyX v1.0 • Local Mode</span>
                 <button
