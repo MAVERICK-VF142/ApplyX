@@ -10,23 +10,39 @@ export default function AuthCallbackPage() {
   const [status, setStatus] = useState<'loading' | 'done' | 'error'>('loading');
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    const handleCallback = async () => {
+      try {
+        // PKCE flow — exchange the code in the URL for a session
+        const { data, error } = await supabase.auth.exchangeCodeForSession(
+          window.location.href
+        );
+
+        if (error || !data.session) {
+          console.error('Auth callback error:', error);
+          setStatus('error');
+          setTimeout(() => router.replace('/'), 2000);
+          return;
+        }
+
+        // If opened by extension, post token back and close
+        if (window.opener) {
+          window.opener.postMessage(
+            { type: 'APPLYX_TOKEN', token: data.session.access_token },
+            '*'
+          );
+          setStatus('done');
+          setTimeout(() => window.close(), 1500);
+        } else {
+          router.replace('/dashboard');
+        }
+      } catch (err) {
+        console.error('Unexpected auth error:', err);
         setStatus('error');
         setTimeout(() => router.replace('/'), 2000);
-        return;
       }
+    };
 
-      // Post the token to any installed ApplyX extension
-      if (window.opener) {
-        window.opener.postMessage({ type: 'APPLYX_TOKEN', token: session.access_token }, '*');
-        setStatus('done');
-        setTimeout(() => window.close(), 1500);
-      } else {
-        // Normal redirect — not opened by extension
-        router.replace('/dashboard');
-      }
-    });
+    handleCallback();
   }, [router]);
 
   return (
