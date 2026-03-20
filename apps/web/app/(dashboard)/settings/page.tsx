@@ -1,45 +1,71 @@
-"use client";
+'use client';
 
-import { useSession } from "next-auth/react";
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, CheckCircle2, AlertCircle } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Mail, CheckCircle2, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function SettingsPage() {
-  const { data: session } = useSession();
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [gmailEmail, setGmailEmail] = useState('');
+  const [appPassword, setAppPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [gmailConnected, setGmailConnected] = useState(false);
+  const [token, setToken] = useState('');
 
   useEffect(() => {
-    fetch("/api/user/api-key")
-      .then(res => res.json())
-      .then(data => setApiKey(data.apiKey))
-      .catch(console.error);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      setToken(session.access_token);
+
+      fetch('/api/user/profile', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.gmailEmail) {
+            setGmailEmail(data.gmailEmail);
+            setGmailConnected(true);
+          }
+        });
+    });
   }, []);
 
-  const handleCopyKey = () => {
-    if (!apiKey) return;
-    navigator.clipboard.writeText(apiKey);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleRotateKey = async () => {
-    if (!confirm("Are you sure? This will break your current extension connection.")) return;
+  const handleSaveGmail = async () => {
+    if (!gmailEmail || !appPassword) {
+      toast.error('Both Gmail address and App Password are required.');
+      return;
+    }
+    setSaving(true);
     try {
-      const res = await fetch("/api/user/api-key", { method: "POST" });
+      const res = await fetch('/api/user/gmail', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ gmailEmail, gmailAppPassword: appPassword }),
+      });
       const data = await res.json();
-      setApiKey(data.apiKey);
-    } catch (err) {
-      console.error(err);
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Gmail connected successfully!');
+      setGmailConnected(true);
+      setAppPassword('');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to connect Gmail');
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
-      <p className="text-muted-foreground">Manage your connections and account preferences.</p>
+      <p className="text-muted-foreground">Connect your Gmail to enable 1-click outreach.</p>
 
       <Card className="border-none bg-muted/20">
         <CardHeader>
@@ -47,78 +73,71 @@ export default function SettingsPage() {
             <Mail className="h-6 w-6 text-primary" />
             <CardTitle>Gmail Connection</CardTitle>
           </div>
-          <CardDescription>Status of your Gmail API integration for sending outreach emails.</CardDescription>
+          <CardDescription>
+            Uses Gmail App Password — no Google OAuth verification required.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 pt-4">
-          <div className="flex items-center justify-between p-4 bg-background border rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary/10 p-2 rounded-full">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              </div>
+          {gmailConnected && (
+            <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/10 border border-green-200 rounded-lg">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
               <div>
                 <p className="font-semibold text-sm">Gmail Connected</p>
-                <p className="text-xs text-muted-foreground truncate max-w-[200px]">{session?.user?.email}</p>
+                <p className="text-xs text-muted-foreground">{gmailEmail}</p>
               </div>
             </div>
-            <Button variant="outline" size="sm" disabled>Reconnect</Button>
-          </div>
+          )}
 
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 rounded-lg flex gap-3 text-blue-800 dark:text-blue-300">
-            <AlertCircle className="h-5 w-5 flex-shrink-0" />
-            <div className="text-xs leading-relaxed space-y-2">
-              <p className="font-semibold">Security Information</p>
-              <p>Your OAuth tokens are stored securely in our database and are used exclusively to send outreach emails on your behalf when you explicitly click the "Send Email" button.</p>
-              <p>Requested scopes: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded">gmail.send</code>, <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded">email</code>, <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded">profile</code>.</p>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="gmail-email">Gmail Address</Label>
+              <Input
+                id="gmail-email"
+                type="email"
+                placeholder="you@gmail.com"
+                value={gmailEmail}
+                onChange={(e) => setGmailEmail(e.target.value)}
+              />
             </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="app-password">Gmail App Password</Label>
+              <div className="relative">
+                <Input
+                  id="app-password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="xxxx xxxx xxxx xxxx"
+                  value={appPassword}
+                  onChange={(e) => setAppPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-2.5 text-muted-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 rounded-lg flex gap-3 text-blue-800 dark:text-blue-300 text-xs">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold">How to get an App Password</p>
+                <ol className="list-decimal list-inside space-y-0.5 opacity-90">
+                  <li>Enable 2-Step Verification on your Google account</li>
+                  <li>Go to <strong>myaccount.google.com/apppasswords</strong></li>
+                  <li>Create a new app password (select "Mail" + "Other")</li>
+                  <li>Paste the 16-character password above</li>
+                </ol>
+              </div>
+            </div>
+
+            <Button onClick={handleSaveGmail} disabled={saving} className="w-full">
+              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...</> : 'Save & Connect Gmail'}
+            </Button>
           </div>
-        </CardContent>
-      </Card>
- 
-      <Card className="border-none bg-muted/20">
-        <CardHeader>
-          <div className="flex items-center gap-2 mb-2">
-            <svg className="h-6 w-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            <CardTitle>Chrome Extension</CardTitle>
-          </div>
-          <CardDescription>Use this key to connect your extension if it's not logged in automatically.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3">
-             <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">Your Extension Key</label>
-             <div className="flex gap-2">
-               <div className="flex-1 bg-background border px-4 py-2 rounded-lg font-mono text-xs flex items-center overflow-hidden">
-                 {apiKey ? `●●●●●●●●●●●●●●●●${apiKey.slice(-8)}` : "Loading..."}
-               </div>
-               <Button variant="outline" size="sm" onClick={handleCopyKey}>
-                 {copied ? "Copied!" : "Copy"}
-               </Button>
-               <Button variant="ghost" size="sm" onClick={handleRotateKey} className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                 Rotate
-               </Button>
-             </div>
-             <p className="text-[10px] text-muted-foreground italic px-1 pt-1">Keep this key secret. If you suspect it's compromised, click Rotate.</p>
-          </div>
-        </CardContent>
-      </Card>
- 
-      <Card className="border-none bg-muted/20">
-        <CardHeader>
-          <CardTitle>Account Details</CardTitle>
-          <CardDescription>Information about your Google account sync.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-           <div className="flex justify-between py-2 border-b border-muted/50 text-sm">
-             <span className="text-muted-foreground font-medium">Full Name</span>
-             <span>{session?.user?.name || "N/A"}</span>
-           </div>
-           <div className="flex justify-between py-2 border-b border-muted/50 text-sm">
-             <span className="text-muted-foreground font-medium">Email Address</span>
-             <span>{session?.user?.email || "N/A"}</span>
-           </div>
-           <div className="flex justify-between py-2 border-b border-muted/50 text-sm">
-             <span className="text-muted-foreground font-medium">Primary Resume</span>
-             <span className="text-primary hover:underline cursor-pointer">View resume data</span>
-           </div>
         </CardContent>
       </Card>
     </div>
