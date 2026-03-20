@@ -5,15 +5,10 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    flowType: 'pkce',
-    detectSessionInUrl: true,
     persistSession: true,
     autoRefreshToken: true,
-  },
-  global: {
-    headers: {
-      'x-client-info': 'applyx-web',
-    },
+    detectSessionInUrl: true,
+    flowType: 'implicit',
   },
 });
 

@@ -1,44 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, FileText, Settings, LogOut, MailSearch } from 'lucide-react';
+import { LayoutDashboard, FileText, Settings, LogOut, MailSearch, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { User } from '@supabase/supabase-js';
+import { usePathname } from 'next/navigation';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
+  const { user, loading, signOut } = useAuth();
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        router.replace('/');
-      } else {
-        setUser(session.user);
-      }
-      setLoading(false);
-    });
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) router.replace('/');
-      else setUser(session.user);
-    });
-
-    return () => listener.subscription.unsubscribe();
-  }, [router]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.replace('/');
-  };
-
-  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   if (!user) return null;
 
   const navItems = [
@@ -74,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="mt-auto pt-4 border-t px-2">
           <div className="flex items-center gap-2 mb-4">
-            <div className="bg-primary rounded-full h-8 w-8 flex items-center justify-center text-primary-foreground text-xs">
+            <div className="bg-primary rounded-full h-8 w-8 flex items-center justify-center text-primary-foreground text-xs font-bold">
               {initial}
             </div>
             <div className="flex-1 truncate">
@@ -82,7 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
           </div>
-          <Button variant="outline" className="w-full justify-start" onClick={handleSignOut}>
+          <Button variant="outline" className="w-full justify-start" onClick={signOut}>
             <LogOut className="mr-3 h-5 w-5" /> Sign Out
           </Button>
         </div>
