@@ -1,22 +1,20 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { getUserFromRequest } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await getUserFromRequest(req);
+    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { data: resume, error } = await supabase
+    const { data } = await supabaseAdmin
       .from('resumes')
       .select('file_name')
-      .eq('user_id', session.user.email)
-      .single();
+      .eq('user_id', auth.user.id)
+      .maybeSingle();
 
-    return NextResponse.json({ exists: !!resume, fileName: resume?.file_name });
-  } catch (error) {
+    return NextResponse.json({ exists: !!data, fileName: data?.file_name ?? null });
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
