@@ -1,91 +1,53 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
-import { sendEmailWithGmail } from '@/lib/gmail';
-
-
+import { getUserFromRequest } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
+import { sendEmail } from '@/lib/mailer';
+import { decrypt } from '@/lib/crypto';
 
 export async function POST(req: Request) {
   try {
-    const apiKey = req.headers.get('x-api-key');
-    let userEmail: string | undefined;
-
-    if (apiKey) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('api_key', apiKey)
-        .single();
-      if (profile) userEmail = profile.email;
-    }
-
-    if (!userEmail) {
-      const session = await auth();
-      userEmail = session?.user?.email || undefined;
-    }
-
-    if (!userEmail) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await getUserFromRequest(req);
+    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { to, subject, body } = await req.json();
-
     if (!to || !subject || !body) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required fields: to, subject, body' }, { status: 400 });
     }
 
-    const { data: userProfile } = await supabase
-      .from('profiles')
-      .select('access_token, refresh_token')
-      .eq('email', userEmail)
-      .single();
+    const [profileFetch, resumeFetch] = await Promise.all([
+      supabaseAdmin.from('profiles').select('gmail_email, gmail_app_password').eq('id', auth.user.id).maybeSingle(),
+      supabaseAdmin.from('resumes').select('file_name, file_content').eq('user_id', auth.user.id).maybeSingle(),
+    ]);
 
-    if (!userProfile?.access_token) {
-      return NextResponse.json({ 
-        error: 'Google OAuth token not found. Please log in again.' 
-        }, { status: 401 });
+    if (!profileFetch.data?.gmail_email || !profileFetch.data?.gmail_app_password) {
+      return NextResponse.json({
+        error: 'Gmail not configured. Please add your Gmail App Password in Settings.',
+      }, { status: 400 });
     }
 
-    // Try to find resume attachment from Supabase
-    const { data: resumeData } = await supabase
-      .from('resumes')
-      .select('resume_text, file_name, file_content')
-      .eq('user_id', userEmail)
-      .single();
+    const gmailAppPassword = decrypt(profileFetch.data.gmail_app_password);
 
-    // Note: If file_content was stored as a buffer in DB, we'd use it here.
-    // For now, let's assume we store the base64 content in Supabase if we want attachments.
-    const attachment = (resumeData && resumeData.file_content) ? {
-      filename: resumeData.file_name || 'Resume.pdf',
-      content: resumeData.file_content, // Assuming base64 string in Supabase
-      contentType: 'application/pdf'
-    } : undefined;
-
-    const result = await sendEmailWithGmail(
-      userProfile.access_token,
-      userProfile.refresh_token || '',
+    await sendEmail({
+      gmailUser: profileFetch.data.gmail_email,
+      gmailAppPassword,
       to,
       subject,
       body,
-      attachment
-    );
+      resumeBase64: resumeFetch.data?.file_content || undefined,
+      resumeFileName: resumeFetch.data?.file_name || undefined,
+    });
 
-    // Save record to DB in Supabase 'sent_emails' table
-    await supabase.from('sent_emails').insert({
-      user_id: userEmail,
+    await supabaseAdmin.from('sent_emails').insert({
+      user_id: auth.user.id,
       recipient: to,
       subject,
       body,
-      thread_id: result.threadId,
-      message_id: result.id,
-      status: 'sent'
+      status: 'sent',
     });
 
-    return NextResponse.json({ success: true, message: 'Email sent successfully with attachment', result });
-
+    return NextResponse.json({ success: true, message: 'Email sent successfully' });
   } catch (error: any) {
-    const message = error.message || 'Failed to send email';
-    console.error('API send-email error:', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('send-email error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to send email' }, { status: 500 });
   }
 }
